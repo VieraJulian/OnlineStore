@@ -16,6 +16,8 @@ import com.onlineestore.order.infra.outputport.IOrderRepository;
 import com.onlineestore.order.infra.outputport.IProductServicePort;
 import com.onlineestore.order.infra.outputport.IUserServicePort;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+
 @Service
 public class OrderUseCase implements IOrderInputPort {
 
@@ -29,6 +31,7 @@ public class OrderUseCase implements IOrderInputPort {
     private IUserServicePort userServ;
 
     @Override
+    @CircuitBreaker(name = "user-service", fallbackMethod = "fallbackGetUserProduct")
     public OrderInfo createOrder(OrderDTO order) {
         Order getOrder = Order.builder()
                 .user_id(order.getUser_id())
@@ -54,6 +57,7 @@ public class OrderUseCase implements IOrderInputPort {
     }
 
     @Override
+    @CircuitBreaker(name = "product-service", fallbackMethod = "fallbackGetUserProduct")
     public OrderInfo getOrderById(String id) {
         Order order = repo.getById(id);
 
@@ -98,4 +102,13 @@ public class OrderUseCase implements IOrderInputPort {
         return "Order deleted successfully!";
     }
 
+    public OrderInfo fallbackGetUserProduct(Throwable throwable) {
+        return OrderInfo.builder()
+                .id(null)
+                .user(null)
+                .product(null)
+                .price(null)
+                .quantity(0)
+                .build();
+    }
 }
